@@ -1,100 +1,85 @@
-import { Redis } from "@upstash/redis";
+import { collection, clean, uid, readBody, send, fail, HttpError, persistent } from './_lib/store.js';
+import categoryHandler from './_lib/categories.js';
 
-// Хранилище: Upstash Redis из Vercel Marketplace (переменные окружения
-// KV_REST_API_URL/KV_REST_API_TOKEN или UPSTASH_REDIS_REST_URL/TOKEN подставляются сами).
-// Если базы нет (локальный запуск) — данные живут в памяти до перезапуска.
-const hasRedis =
-  (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL) &&
-  (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN);
-const redis = hasRedis ? Redis.fromEnv() : null;
-const KEY = "board:notes";
-const memory = new Map();
-
-const store = {
-  async all() {
-    if (!redis) return [...memory.values()];
-    const h = (await redis.hgetall(KEY)) || {};
-    return Object.values(h).map((v) => (typeof v === "string" ? JSON.parse(v) : v));
-  },
-  async get(id) {
-    if (!redis) return memory.get(id) || null;
-    const v = await redis.hget(KEY, id);
-    return v ? (typeof v === "string" ? JSON.parse(v) : v) : null;
-  },
-  async put(note) {
-    if (!redis) return void memory.set(note.id, note);
-    await redis.hset(KEY, { [note.id]: JSON.stringify(note) });
-  },
-  async remove(id) {
-    if (!redis) return memory.delete(id);
-    return (await redis.hdel(KEY, id)) > 0;
-  },
+const notes = collection('notes');
+const categories = collection('categories');
+const COLORS = ['yellow', 'pink', 'blue', 'green', 'orange'];
+const has = (object, key) => Object.hasOwn(object, key);
+const required = (value, max, message) => {
+  const result = clean(value, max);
+  if (!result) throw new HttpError(400, message);
+  return result;
 };
-
-const COLORS = ["yellow", "pink", "blue", "green", "orange"];
-const MAX_NOTES = 300;
-const clean = (v, max) => String(v ?? "").trim().slice(0, max);
-
-async function readBody(req) {
-  if (req.body && typeof req.body === "object") return req.body;
-  if (typeof req.body === "string") return JSON.parse(req.body || "{}");
-  let data = "";
-  for await (const chunk of req) data += chunk;
-  return data ? JSON.parse(data) : {};
-}
-
-function send(res, status, payload) {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "no-store");
-  res.end(JSON.stringify(payload));
+async function categoryId(value) {
+  const id = clean(value, 80);
+  if (id && !(await categories.get(id))) throw new HttpError(400, 'Категория не найдена. Обновите доску');
+  return id;
 }
 
 export default async function handler(req, res) {
+  if (req.query?.resource === 'categories') return categoryHandler(req, res);
   try {
-    if (req.method === "GET") {
-      const notes = await store.all();
-      notes.sort((a, b) => b.created - a.created);
-      return send(res, 200, { notes });
+    if (req.method === 'GET') {
+      const list = await notes.all();
+      list.sort((a, b) => b.created - a.created);
+      return send(res, 200, { notes: list.map(note => ({ categoryId: '', subtasks: [], ...note })), persistent });
     }
-
+    if (!['POST', 'PATCH', 'DELETE'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+      return send(res, 405, { error: 'Метод не поддерживается' });
+    }
     const body = await readBody(req);
-
-    if (req.method === "POST") {
-      const title = clean(body.title, 80);
-      if (!title) return send(res, 400, { error: "Напиши, что нужно сделать" });
-      if ((await store.all()).length >= MAX_NOTES)
-        return send(res, 400, { error: "Доска переполнена — сними старые задачи" });
+    if (req.method === 'POST') {
+      const title = required(body.title, 80, 'Напишите название задачи');
+      if ((await notes.all()).length >= 300) throw new HttpError(400, 'На доске уже 300 задач. Снимите ненужные');
       const note = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-        title,
-        desc: clean(body.desc, 400),
-        author: clean(body.author, 30),
-        color: COLORS.includes(body.color) ? body.color : "yellow",
-        created: Date.now(),
-        takenBy: "",
+        id: uid(), title, desc: clean(body.desc, 2000), author: clean(body.author, 30),
+        color: COLORS.includes(body.color) ? body.color : 'yellow',
+        categoryId: await categoryId(body.categoryId), created: Date.now(), takenBy: '', subtasks: [],
       };
-      await store.put(note);
+      await notes.put(note);
       return send(res, 201, { note });
     }
-
-    if (req.method === "PATCH") {
-      const note = await store.get(clean(body.id, 40));
-      if (!note) return send(res, 404, { error: "Задачу уже сняли" });
-      note.takenBy = clean(body.takenBy, 30);
-      await store.put(note);
-      return send(res, 200, { note });
-    }
-
-    if (req.method === "DELETE") {
-      await store.remove(clean(body.id, 40));
+    const id = required(body.id, 80, 'Задача не указана');
+    const note = await notes.get(id);
+    if (!note) throw new HttpError(404, 'Задачу уже сняли с доски');
+    if (req.method === 'DELETE') {
+      await notes.remove(id);
       return send(res, 200, { ok: true });
     }
-
-    res.setHeader("Allow", "GET, POST, PATCH, DELETE");
-    return send(res, 405, { error: "Method not allowed" });
-  } catch (e) {
-    console.error(e);
-    return send(res, 500, { error: "Ошибка сервера" });
-  }
+    const version = note.version || 0;
+    if (has(body, 'expectedVersion') && body.expectedVersion !== version) {
+      throw new HttpError(409, 'Задача уже изменилась у другого участника. Закройте редактор и откройте задачу заново');
+    }
+    note.subtasks ||= [];
+    note.categoryId ||= '';
+    if (body.action) {
+      if (body.action === 'addSubtask') {
+        if (note.subtasks.length >= 50) throw new HttpError(400, 'В задаче уже 50 подзадач');
+        note.subtasks.push({ id: uid(), title: required(body.title, 160, 'Напишите подзадачу'), done: false });
+      } else if (['toggleSubtask', 'editSubtask', 'removeSubtask'].includes(body.action)) {
+        const subtask = note.subtasks.find(item => item.id === body.subtaskId);
+        if (!subtask) throw new HttpError(404, 'Подзадачу уже удалили. Обновите задачу');
+        if (body.action === 'toggleSubtask') {
+          if (typeof body.done !== 'boolean') throw new HttpError(400, 'Неверный статус подзадачи');
+          subtask.done = body.done;
+        }
+        if (body.action === 'editSubtask') subtask.title = required(body.title, 160, 'Напишите подзадачу');
+        if (body.action === 'removeSubtask') note.subtasks = note.subtasks.filter(item => item.id !== body.subtaskId);
+      } else throw new HttpError(400, 'Неизвестное действие');
+    } else {
+      if (has(body, 'title')) note.title = required(body.title, 80, 'Напишите название задачи');
+      if (has(body, 'desc')) note.desc = clean(body.desc, 2000);
+      if (has(body, 'author')) note.author = clean(body.author, 30);
+      if (has(body, 'takenBy')) note.takenBy = clean(body.takenBy, 30);
+      if (has(body, 'categoryId')) note.categoryId = await categoryId(body.categoryId);
+      if (has(body, 'color')) {
+        if (!COLORS.includes(body.color)) throw new HttpError(400, 'Выберите цвет стикера');
+        note.color = body.color;
+      }
+    }
+    note.updated = Date.now();
+    if (!(await notes.replace(note, version))) throw new HttpError(409, 'Задача изменилась. Повторите действие');
+    return send(res, 200, { note });
+  } catch (error) { return fail(res, error); }
 }
