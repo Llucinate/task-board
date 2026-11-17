@@ -7,7 +7,9 @@ async function blobSnapshot() {
   const { get } = await import('@vercel/blob');
   const result = await get(pathname, { access: 'private', useCache: false, token: process.env.BLOB_READ_WRITE_TOKEN });
   if (!result) return { data: emptyState(), etag: null };
-  return { data: await new Response(result.stream).json(), etag: result.blob.etag };
+  // Private download transport can mark the same storage ETag as weak.
+  // Blob conditional PUT expects the strong storage tag, including quotes.
+  return { data: await new Response(result.stream).json(), etag: result.blob.etag.replace(/^W\//, '') };
 }
 export async function transact(action) {
   if (process.env.TASK_BOARD_DATA_FILE && !process.env.VERCEL && process.env.NODE_ENV !== 'production') {
