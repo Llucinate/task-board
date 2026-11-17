@@ -72,3 +72,21 @@ test('Рабочий сценарий двух участников',async t=>{
  assert.equal((await call('DELETE',{id:note.id},'',oc)).status,200);const data=await call('GET',null,'',oc);assert.ok(!data.notes.some(x=>x.id===note.id));assert.ok(data.notes.some(x=>x.id===personal.id));
  });
 });
+
+test('Blob: согласованные чтения, слабый HTTP ETag и конкурентные записи',async()=>{
+ const {transact,emptyState}=await import('../api/_lib/database.js');
+ const savedToken=process.env.BLOB_READ_WRITE_TOKEN;process.env.BLOB_READ_WRITE_TOKEN='fake-test-token';
+ let value=emptyState(),revision=1;const readOptions=[];
+ class Conflict extends Error{}
+ const provider={BlobPreconditionFailedError:Conflict,async get(path,options){readOptions.push(options);return{stream:new Response(JSON.stringify(value)).body,blob:{etag:`W/"revision-${revision}"`}};},async put(path,body,options){if(options.ifMatch!==`"revision-${revision}"`)throw new Conflict();value=JSON.parse(body);revision++;}};
+ try{
+  await Promise.all(['первый','второй'].map(title=>transact(db=>{db.notes.push({id:title,title});return true;},provider)));
+  assert.equal(value.notes.length,2);assert.ok(value.notes.some(x=>x.id==='первый'));assert.ok(value.notes.some(x=>x.id==='второй'));assert.ok(readOptions.every(x=>x.useCache===false&&x.access==='private'));
+ }finally{if(savedToken===undefined)delete process.env.BLOB_READ_WRITE_TOKEN;else process.env.BLOB_READ_WRITE_TOKEN=savedToken;}
+});
+test('Без настроенного production-хранилища сервер не обещает сохранение',async()=>{
+ const file=pathToFileURL(resolve('api/notes.js')).href;
+ const env={...process.env};delete env.TASK_BOARD_DATA_FILE;delete env.BLOB_READ_WRITE_TOKEN;
+ const script=`import handler from ${JSON.stringify(file)};const res={setHeader(){},end(s){console.log(JSON.stringify({status:this.statusCode,...JSON.parse(s)}))}};await handler({method:'GET',query:{resource:'auth'},headers:{host:'board.test'}},res);`;
+ const child=spawnSync(process.execPath,['--input-type=module','-e',script],{encoding:'utf8',env});assert.equal(child.status,0,child.stderr);assert.equal(JSON.parse(child.stdout).status,503);
+});

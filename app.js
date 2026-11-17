@@ -31,7 +31,7 @@ function render(){
   const allActive=state.notes.filter(x=>!x.done).length;$('allCount').textContent=allActive||'';
   $('allTasks').classList.toggle('active',state.category==='all');
   for(const [scope,id] of [['shared','sharedCategories'],['private','privateCategories']]){
-    $(id).innerHTML=state.categories.filter(x=>x.scope===scope).map(category=>`<button class="category-item${category.id===state.category?' active':''}" data-category="${esc(category.id)}" aria-label="${scope==='private'?'Личная':'Общая'} категория: ${esc(category.name)}">${scope==='private'?'<span aria-hidden="true">◉</span>':''}${esc(category.name)}<span>${state.notes.filter(x=>x.categoryId===category.id&&!x.done).length||''}</span></button>`).join('');
+    $(id).innerHTML=state.categories.filter(x=>x.scope===scope).map(category=>`<button class="category-item${category.id===state.category?' active':''}" data-category="${esc(category.id)}" aria-label="${scope==='private'?'Личная':'Общая'} категория: ${esc(category.name)}">${scope==='private'?'<i aria-hidden="true">◉</i>':''}${esc(category.name)}<span>${state.notes.filter(x=>x.categoryId===category.id&&!x.done).length||''}</span></button>`).join('');
   }
   const category=currentCategory();
   $('pageTitle').textContent=category?.name||'Все задачи';$('scopeLabel').textContent=category?(category.scope==='private'?'ЛИЧНАЯ КАТЕГОРИЯ':'ОБЩАЯ КАТЕГОРИЯ'):'ВСЕ КАТЕГОРИИ';
