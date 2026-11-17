@@ -1,80 +1,46 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#6b4a2b">
-<title>Доска задач</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📌</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
-<script src="/app.js" defer></script>
-</head>
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f4f0"><meta name="referrer" content="no-referrer"><title>Наши дела</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
 <body>
-<header>
-  <a class="brand" href="#board"><span aria-hidden="true">📌</span> Доска задач</a>
-  <nav aria-label="Главное меню">
-    <a class="nav-link active" href="#board" id="boardTab" aria-current="page">Доска</a>
-    <a class="nav-link" href="#settings" id="settingsTab">Настройки</a>
-  </nav>
-  <button class="add-btn" id="addBtn">+ Задача</button>
-</header>
-<main>
-  <section id="boardView" aria-label="Доска задач">
-    <div class="board-intro"><p id="count" aria-live="polite">Загружаем задачи…</p><button class="profile-link" id="profileLink">Заполнить профиль</button></div>
-    <div class="toolbar">
-      <div class="filters" id="filters" aria-label="Статус задач"></div>
-      <label class="category-filter">Категория <select id="categoryFilter" aria-label="Фильтр по категории"><option value="all">Все категории</option></select></label>
-      <details class="category-composer" id="categoryComposer"><summary>+ Категория</summary>
-        <form id="categoryForm" class="inline-category"><label for="categoryName">Новая категория</label><div class="input-row"><input id="categoryName" maxlength="40" required placeholder="Например, работа"><button class="primary" data-mutate>Создать</button></div><p class="error" id="categoryError" role="alert"></p></form>
-      </details>
-    </div>
-    <p class="connection" id="connection" role="status"></p>
-    <div id="board" class="board" aria-label="Задачи"></div>
-  </section>
-  <section id="settingsView" class="settings-view" hidden aria-labelledby="settingsHeading">
-    <div class="settings-heading"><span class="eyebrow">НАСТРОЙКИ</span><h1 id="settingsHeading">Мой профиль</h1><p>Один раз укажите имя. Оно появится в новых заметках и в задачах, которые вы возьмёте.</p></div>
-    <form id="profileForm" class="profile-form">
-      <label for="profileName">Ваше имя</label><input id="profileName" maxlength="30" autocomplete="nickname" required placeholder="Как вас подписывать" aria-describedby="profileHelp">
-      <p class="hint" id="profileHelp">Профиль сохраняется в этом браузере. На другом устройстве имя нужно указать заново.</p>
-      <p class="error" id="profileError" role="alert"></p>
-      <button class="primary" type="submit">Сохранить профиль</button>
-    </form>
-    <p class="settings-footnote">Это общая доска: заметки и изменения видны всем участникам.</p>
-  </section>
-</main>
-<dialog id="editor" class="editor-dialog" aria-labelledby="editorHeading">
-  <div class="dialog-header"><h2 id="editorHeading">Новая задача</h2><button class="icon-button" type="button" data-close="editor" aria-label="Закрыть редактор">×</button></div>
-  <form id="noteForm">
-    <label for="noteTitle">Название</label><input id="noteTitle" maxlength="80" required placeholder="Что нужно сделать">
-    <label for="noteDesc">Подробности</label><textarea id="noteDesc" maxlength="2000" rows="4" placeholder="Детали, ссылки, сроки"></textarea>
-    <label for="noteCategory">Категория</label><select id="noteCategory"><option value="">Без категории</option></select>
-    <button class="text-button" type="button" id="newCategoryBtn">+ Создать категорию</button>
-    <div id="editorCategoryFields" class="inline-category" hidden>
-      <label for="editorCategoryName">Название категории</label><div class="input-row"><input id="editorCategoryName" maxlength="40" placeholder="Например, личное"><button class="secondary" id="editorCategorySave" type="button" data-mutate>Создать</button></div><p class="error" id="editorCategoryError" role="alert"></p>
-    </div>
-    <fieldset class="color-field"><legend>Цвет стикера</legend><div id="colors" class="colors"></div></fieldset>
-    <p class="hint" id="editorAuthor"></p><p class="error" id="noteError" role="alert"></p>
-    <div class="form-actions"><button class="secondary" type="button" data-close="editor">Отмена</button><button class="primary" id="noteSave" data-mutate>Повесить задачу</button></div>
+<section id="authView" class="auth-view" hidden>
+  <div class="auth-brand">Наши дела<span>Задачи для себя и вместе</span></div>
+  <form id="authForm" class="auth-form">
+    <h1 id="authHeading">Войти</h1><p id="authIntro" class="muted">Личные категории доступны только вам. Общие — вашей команде.</p>
+    <div id="registerFields" hidden><label for="authName">Ваше имя</label><input id="authName" maxlength="40" autocomplete="nickname"></div>
+    <label for="authUsername">Логин</label><input id="authUsername" minlength="3" maxlength="32" autocomplete="username" required pattern="[a-zA-Z0-9_.\-]{3,32}"><p class="hint">Латинские буквы, цифры, точка, дефис или подчёркивание.</p>
+    <label for="authPassword">Пароль</label><input id="authPassword" type="password" minlength="12" maxlength="128" autocomplete="current-password" required><p class="hint">Не менее 12 символов.</p>
+    <p id="authError" class="error" role="alert"></p><button id="authSubmit" class="primary">Войти</button>
+    <button id="switchLogin" class="text-button" type="button" hidden>Уже есть аккаунт? Войти</button>
   </form>
+</section>
+<div id="appView" class="app-shell" hidden>
+  <aside class="sidebar">
+    <div class="sidebar-brand">Наши дела<span>Личное и общее под рукой</span></div>
+    <button id="allTasks" class="category-item active">Все задачи <span id="allCount"></span></button>
+    <div class="category-group"><h2>Общие категории</h2><div id="sharedCategories"></div></div>
+    <div class="category-group"><h2>Мои категории <span aria-hidden="true">◉</span></h2><div id="privateCategories"></div></div>
+    <button id="addCategory" class="add-category">+ Создать категорию</button>
+    <button id="settingsBtn" class="settings-button">Настройки и участники</button>
+  </aside>
+  <main class="workspace">
+    <header class="topbar"><span id="workspaceLabel">Общий обзор</span><div><span id="myName"></span><button id="logoutBtn" class="text-button">Выйти</button></div></header>
+    <section id="tasksView">
+      <div class="page-heading"><div><p id="scopeLabel" class="eyebrow">ВСЕ КАТЕГОРИИ</p><h1 id="pageTitle">Все задачи</h1><p id="pageDescription" class="muted">Личные дела и общая работа в одном месте.</p></div><button id="editCategoryBtn" class="secondary" hidden>Переименовать</button></div>
+      <div class="task-toolbar"><div class="tabs" aria-label="Статус задач"><button id="activeTab" aria-pressed="true">Активные <span id="activeCount"></span></button><button id="doneTab" aria-pressed="false">Выполненные <span id="doneCount"></span></button></div><label class="sr-only" for="search">Поиск задач</label><input id="search" type="search" placeholder="Найти задачу"></div>
+      <form id="quickForm" class="quick-form"><label class="sr-only" for="quickTitle">Новая задача</label><input id="quickTitle" maxlength="160" required placeholder="Что нужно сделать?"><label class="sr-only" for="quickCategory">Категория новой задачи</label><select id="quickCategory" required></select><button class="primary" data-mutate>Добавить</button></form>
+      <p id="mainError" class="error" role="alert"></p><p id="connection" class="connection" role="status">Подключаемся…</p>
+      <div id="taskList" class="task-list" aria-label="Задачи"></div>
+    </section>
+    <section id="settingsView" hidden><div class="page-heading"><div><p class="eyebrow">ВАШ АККАУНТ</p><h1>Настройки</h1></div><button id="backToTasks" class="secondary">К задачам</button></div>
+      <form id="profileForm" class="settings-block"><h2>Профиль</h2><label for="profileName">Ваше имя</label><input id="profileName" maxlength="40" required><p class="hint">Автоматически используется при создании задачи и назначении себя исполнителем.</p><p id="profileError" class="error" role="alert"></p><button class="primary" data-mutate>Сохранить имя</button></form>
+      <section class="settings-block"><h2>Участники</h2><div id="members"></div><div id="inviteArea" hidden><p class="muted">Приглашённый участник увидит общие категории. Ваши личные задачи останутся закрытыми.</p><button id="inviteBtn" class="secondary" data-mutate>Пригласить партнёра</button><div id="inviteResult" hidden><label for="inviteLink">Одноразовая ссылка, действует 7 дней</label><input id="inviteLink" readonly><button id="copyInvite" class="text-button">Скопировать ссылку</button></div><p id="inviteError" class="error" role="alert"></p></div></section>
+    </section>
+  </main>
+</div>
+<dialog id="categoryDialog" aria-labelledby="categoryHeading"><div class="dialog-heading"><h2 id="categoryHeading">Новая категория</h2><button class="close" data-close="categoryDialog" aria-label="Закрыть категорию">×</button></div><form id="categoryForm"><label for="categoryName">Название</label><input id="categoryName" maxlength="40" required placeholder="Например, Ruby Studio"><fieldset id="categoryScope"><legend>Кто видит категорию</legend><label class="choice"><input type="radio" name="scope" value="shared" checked><span><strong>Общая</strong><small>Вы и участники команды</small></span></label><label class="choice"><input type="radio" name="scope" value="private"><span><strong>Личная</strong><small>Только вы</small></span></label></fieldset><p id="categoryError" class="error" role="alert"></p><button class="primary full" data-mutate>Сохранить категорию</button></form></dialog>
+<dialog id="taskDialog" class="task-dialog" aria-labelledby="taskHeading"><div class="dialog-heading"><span id="taskScope" class="eyebrow"></span><button class="close" data-close="taskDialog" aria-label="Закрыть задачу">×</button></div><h2 id="taskHeading">Задача</h2>
+  <form id="taskForm"><label for="taskTitle">Название</label><input id="taskTitle" maxlength="160" required><label for="taskDesc">Подробности</label><textarea id="taskDesc" rows="4" maxlength="5000" placeholder="Описание, ссылки и детали"></textarea><div class="field-row"><div><label for="taskCategory">Категория</label><select id="taskCategory"></select></div><div><label for="taskAssignee">Кто делает</label><select id="taskAssignee"></select></div></div><p id="taskAuthor" class="hint"></p><button class="primary" data-mutate>Сохранить изменения</button></form>
+  <section class="subtask-section"><div class="section-heading"><h3>Подзадачи</h3><span id="stepCount"></span></div><progress id="stepProgress" value="0" max="1" aria-label="Выполнено подзадач"></progress><ul id="stepList"></ul><form id="stepForm" class="input-row"><label class="sr-only" for="stepTitle">Новая подзадача</label><input id="stepTitle" maxlength="160" required placeholder="Следующий шаг"><button class="secondary" data-mutate>Добавить</button></form></section>
+  <p id="taskError" class="error" role="alert"></p><div class="task-footer"><button id="taskComplete" class="secondary" data-mutate>Отметить выполненной</button><button id="deleteBtn" class="text-button danger-text">Удалить</button></div><div id="deleteConfirm" class="delete-confirm" hidden><p>Удалить задачу вместе с подзадачами?</p><div class="input-row"><button id="cancelDelete" class="secondary">Отмена</button><button id="confirmDelete" class="danger" data-mutate>Удалить задачу</button></div></div>
 </dialog>
-<dialog id="taskDialog" class="task-dialog" aria-labelledby="taskTitle">
-  <div class="dialog-header"><span class="task-category" id="taskCategory"></span><button class="icon-button" data-close="taskDialog" aria-label="Закрыть подробности">×</button></div>
-  <h2 id="taskTitle" tabindex="-1"></h2><p id="taskDescription" class="task-description"></p>
-  <div class="task-meta" id="taskMeta"></div>
-  <div class="task-actions"><button class="primary" id="takeBtn" data-mutate>Взять себе</button><button class="secondary" id="editBtn" data-mutate>Редактировать</button></div>
-  <section class="subtask-section" aria-labelledby="subtasksHeading">
-    <div class="subtask-heading"><h3 id="subtasksHeading">Маленькие шаги</h3><span id="subtaskCount" aria-live="polite">0 из 0</span></div>
-    <progress id="subtaskProgress" max="1" value="0" aria-label="Выполнено подзадач"></progress>
-    <ul class="subtasks" id="subtaskList"></ul>
-    <p class="hint" id="subtaskEmpty">Разбейте большую цель на небольшие подзадачи.</p>
-    <form id="subtaskForm"><label class="sr-only" for="subtaskTitle">Новая подзадача</label><div class="input-row"><input id="subtaskTitle" maxlength="160" required placeholder="Следующий маленький шаг"><button class="secondary" data-mutate>Добавить</button></div></form>
-  </section>
-  <p class="error" id="taskError" role="alert"></p>
-  <div class="task-footer"><span id="taskDate"></span><button class="text-button danger-text" id="deleteBtn" data-mutate>Снять задачу</button></div>
-  <div id="deleteConfirm" class="delete-confirm" hidden><p>Задача и все её подзадачи исчезнут у всех участников.</p><div class="form-actions"><button class="secondary" id="cancelDelete">Оставить</button><button class="danger" id="confirmDelete" data-mutate>Снять задачу</button></div></div>
-</dialog>
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-</body>
-</html>
+<div id="toast" class="toast" role="status" hidden></div>
+</body></html>
