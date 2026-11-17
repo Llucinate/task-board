@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f4f0"><meta name="referrer" content="no-referrer"><title>Наши дела</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f4f0"><meta name="referrer" content="no-referrer"><title>Наши дела</title><script src="/theme.js"></script><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
 <body>
+<button id="themeToggle" class="theme-toggle" type="button" aria-label="Включить тёмную тему" aria-pressed="false">☾ Тёмная тема</button>
 <section id="authView" class="auth-view" hidden>
   <div class="auth-brand">Наши дела<span>Задачи для себя и вместе</span></div>
   <form id="authForm" class="auth-form">
@@ -31,6 +32,7 @@
       <div id="taskList" class="task-list" aria-label="Задачи"></div>
     </section>
     <section id="settingsView" hidden><div class="page-heading"><div><p class="eyebrow">ВАШ АККАУНТ</p><h1>Настройки</h1></div><button id="backToTasks" class="secondary">К задачам</button></div>
+      <section class="settings-block"><h2>Оформление</h2><label for="themeSelect">Тема приложения</label><select id="themeSelect"><option value="system">Как в системе</option><option value="light">Светлая</option><option value="dark">Тёмная</option></select><p class="hint">Выбор сохраняется в этом браузере.</p></section>
       <form id="profileForm" class="settings-block"><h2>Профиль</h2><label for="profileName">Ваше имя</label><input id="profileName" maxlength="40" required><p class="hint">Автоматически используется при создании задачи и назначении себя исполнителем.</p><p id="profileError" class="error" role="alert"></p><button class="primary" data-mutate>Сохранить имя</button></form>
       <section class="settings-block"><h2>Участники</h2><div id="members"></div><div id="inviteArea" hidden><p class="muted">Приглашённый участник увидит общие категории. Ваши личные задачи останутся закрытыми.</p><button id="inviteBtn" class="secondary" data-mutate>Пригласить партнёра</button><div id="inviteResult" hidden><label for="inviteLink">Одноразовая ссылка, действует 7 дней</label><input id="inviteLink" readonly><button id="copyInvite" class="text-button">Скопировать ссылку</button></div><p id="inviteError" class="error" role="alert"></p></div></section>
     </section>
